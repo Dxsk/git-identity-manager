@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "label": "Personal",
+      "name": "Your Name",
+      "email": "your-email@example.com"
+    },
+    {
+      "label": "Work",
+      "name": "Your Name",
+      "email": "your-work-email@company.com"
+    }
+  ]
+}
