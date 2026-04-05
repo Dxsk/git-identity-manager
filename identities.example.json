@@ -3,12 +3,15 @@
     {
       "label": "Personal",
       "name": "Your Name",
-      "email": "your-email@example.com"
+      "email": "your-email@example.com",
+      "signingKey": "ABCDEF1234567890",
+      "remotes": ["github\\.com[:/]your-username/"]
     },
     {
       "label": "Work",
       "name": "Your Name",
-      "email": "your-work-email@company.com"
+      "email": "your-work-email@company.com",
+      "remotes": ["github\\.com[:/]your-org/", "gitlab\\.com[:/]your-org/"]
     }
   ]
 }

@@ -32,6 +32,24 @@ nix run github:Dxsk/git-identity-manager
 
 > Dependencies (`jq`, `fzf`, `git`) are bundled automatically by Nix.
 
+### Make
+
+```bash
+make install            # installs to ~/.local/bin/git-identity
+make install PREFIX=/usr/local  # or specify a custom prefix
+make uninstall
+```
+
+### Stow
+
+Clone the repo into your dotfiles directory and stow it:
+
+```bash
+cd ~/dotfiles
+git clone git@github.com:Dxsk/git-identity-manager.git
+stow git-identity-manager -t ~/.local/bin --ignore='README.*|LICENSE|flake.*|identities.*|\.git'
+```
+
 ### Manual
 
 Dependencies: [jq](https://jqlang.github.io/jq/), [fzf](https://github.com/junegunn/fzf)
@@ -56,13 +74,14 @@ $EDITOR "${XDG_CONFIG_HOME:-$HOME/.config}/git-identity/identities.json"
 
 ## Usage
 
-Inside any git repository:
-
 ```bash
-git-identity
+git-identity              # Interactive identity picker
+git-identity --list       # List all configured identities
+git-identity --current    # Show current local identity
+git-identity --unset      # Remove local identity (falls back to global)
+git-identity --hook       # Install a post-checkout reminder hook
+git-identity --help       # Show help
 ```
-
-An interactive fzf prompt will appear. Select an identity and it will be applied via `git config --local`.
 
 ## Configuration
 
@@ -77,6 +96,40 @@ Override it with the `GIT_IDENTITY_CONFIG` environment variable:
 ```bash
 export GIT_IDENTITY_CONFIG="$HOME/my-identities.json"
 ```
+
+### Identity fields
+
+| Field | Required | Description |
+|---|---|---|
+| `label` | yes | Display name for the identity |
+| `name` | yes | Git `user.name` |
+| `email` | yes | Git `user.email` |
+| `signingKey` | no | GPG/SSH signing key — sets `user.signingkey` and enables `commit.gpgsign` |
+| `remotes` | no | Regex patterns to match remote URLs — used for auto-suggestion |
+
+### Auto-detection
+
+If an identity has `remotes` patterns, the tool matches them against the current repo's `origin` URL and pre-fills the fzf prompt with the suggested identity.
+
+Example config:
+
+```json
+{
+  "identities": [
+    {
+      "label": "Work",
+      "name": "Your Name",
+      "email": "you@company.com",
+      "signingKey": "key_id",
+      "remotes": ["github\\.com[:/]your-org/"]
+    }
+  ]
+}
+```
+
+### Post-checkout hook
+
+Run `git-identity --hook` inside a repo to install a `post-checkout` hook that reminds you to set an identity when none is configured locally.
 
 ## License
 
