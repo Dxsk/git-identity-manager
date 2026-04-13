@@ -1,6 +1,6 @@
 # Maintainer: Dxsk <https://github.com/Dxsk>
 pkgname=git-identity-manager
-pkgver=0.0.0 # x-release-please-version
+pkgver=1.0.0 # x-release-please-version
 pkgrel=1
 pkgdesc="Simple CLI tool to switch between Git identities per repository using fzf"
 arch=('any')
