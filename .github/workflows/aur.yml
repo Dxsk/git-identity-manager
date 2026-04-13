@@ -1,0 +1,31 @@
+name: Publish to AUR
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  aur-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate PKGBUILD
+        run: |
+          SHA256=$(curl -sL "https://github.com/${{ github.repository }}/archive/refs/tags/${GITHUB_REF_NAME}.tar.gz" | sha256sum | cut -d' ' -f1)
+          sed -i "s/^pkgver=.*/pkgver=${{ steps.version.outputs.version }}/" PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('${SHA256}')/" PKGBUILD
+
+      - name: Publish to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v3.0.1
+        with:
+          pkgname: git-identity-manager
+          pkgbuild: ./PKGBUILD
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to ${{ steps.version.outputs.version }}"
