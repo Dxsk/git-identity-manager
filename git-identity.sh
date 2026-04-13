@@ -3,6 +3,18 @@ set -euo pipefail
 
 CONFIG_FILE="${GIT_IDENTITY_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/git-identity/identities.json}"
 
+# Conditional colors: only when stdout is a terminal
+if [[ -t 1 ]]; then
+  BOLD='\033[1m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[0;33m'
+  RED='\033[0;31m'
+  DIM='\033[2m'
+  RESET='\033[0m'
+else
+  BOLD='' GREEN='' YELLOW='' RED='' DIM='' RESET=''
+fi
+
 usage() {
   cat <<EOF
 Usage: git-identity [OPTION]
@@ -20,22 +32,26 @@ EOF
 
 require_config() {
   if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo "Config not found: $CONFIG_FILE"
+    echo -e "${RED}Config not found: $CONFIG_FILE${RESET}"
     echo "Create it or set GIT_IDENTITY_CONFIG to point to your identities.json"
+    exit 1
+  fi
+  if ! jq empty "$CONFIG_FILE" 2>/dev/null; then
+    echo -e "${RED}Invalid JSON in config: $CONFIG_FILE${RESET}"
     exit 1
   fi
 }
 
 require_repo() {
   if ! git rev-parse --is-inside-work-tree &>/dev/null; then
-    echo "Not inside a git repository."
+    echo -e "${RED}Not inside a git repository.${RESET}"
     exit 1
   fi
 }
 
 require_jq() {
   if ! command -v jq &>/dev/null; then
-    echo "jq is required. Install it first."
+    echo -e "${RED}jq is required. Install it first.${RESET}"
     exit 1
   fi
 }
@@ -54,14 +70,14 @@ cmd_current() {
   signing=$(git config --local user.signingkey 2>/dev/null || true)
 
   if [[ -z "$name" && -z "$email" ]]; then
-    echo "No local identity set. Using global config."
+    echo -e "${YELLOW}No local identity set. Using global config.${RESET}"
     return
   fi
 
-  echo "Current local identity:"
-  echo "  user.name       = ${name:-(not set)}"
-  echo "  user.email      = ${email:-(not set)}"
-  [[ -n "$signing" ]] && echo "  user.signingkey = $signing"
+  echo -e "${BOLD}Current local identity:${RESET}"
+  echo -e "  user.name       = ${GREEN}${name:-(not set)}${RESET}"
+  echo -e "  user.email      = ${GREEN}${email:-(not set)}${RESET}"
+  [[ -n "$signing" ]] && echo -e "  user.signingkey = ${GREEN}$signing${RESET}"
 }
 
 cmd_unset() {
@@ -71,7 +87,7 @@ cmd_unset() {
   git config --local --unset user.signingkey 2>/dev/null || true
   git config --local --unset commit.gpgsign 2>/dev/null || true
   git config --local --unset gpg.format 2>/dev/null || true
-  echo "Local identity removed. Falling back to global config."
+  echo -e "${GREEN}Local identity removed.${RESET} Falling back to global config."
 }
 
 cmd_hook() {
@@ -81,7 +97,7 @@ cmd_hook() {
   local hook_file="$hook_dir/post-checkout"
 
   if [[ -f "$hook_file" ]] && grep -q "git-identity" "$hook_file"; then
-    echo "Hook already installed: $hook_file"
+    echo -e "${YELLOW}Hook already installed:${RESET} $hook_file"
     return
   fi
 
@@ -102,7 +118,7 @@ if [[ -z "$(git config --local user.name 2>/dev/null)" ]]; then
 fi
 HOOK
 
-  echo "Post-checkout hook installed: $hook_file"
+  echo -e "${GREEN}Post-checkout hook installed:${RESET} $hook_file"
 }
 
 apply_identity() {
@@ -121,9 +137,9 @@ apply_identity() {
   current_name=$(git config --local user.name 2>/dev/null || true)
   current_email=$(git config --local user.email 2>/dev/null || true)
   if [[ -n "$current_name" || -n "$current_email" ]]; then
-    echo "Previous identity:"
-    echo "  user.name  = ${current_name:-(not set)}"
-    echo "  user.email = ${current_email:-(not set)}"
+    echo -e "${DIM}Previous identity:${RESET}"
+    echo -e "  user.name  = ${DIM}${current_name:-(not set)}${RESET}"
+    echo -e "  user.email = ${DIM}${current_email:-(not set)}${RESET}"
     echo ""
   fi
 
@@ -144,10 +160,10 @@ apply_identity() {
     git config --local --unset gpg.format 2>/dev/null || true
   fi
 
-  echo "Identity set for this repo:"
-  echo "  user.name       = $name"
-  echo "  user.email      = $email"
-  [[ -n "$signing_key" ]] && echo "  user.signingkey = $signing_key"
+  echo -e "${GREEN}Identity set for this repo:${RESET}"
+  echo -e "  user.name       = ${BOLD}$name${RESET}"
+  echo -e "  user.email      = ${BOLD}$email${RESET}"
+  [[ -n "$signing_key" ]] && echo -e "  user.signingkey = ${BOLD}$signing_key${RESET}"
 }
 
 cmd_select() {
@@ -156,7 +172,7 @@ cmd_select() {
   require_repo
 
   if ! command -v fzf &>/dev/null; then
-    echo "fzf is required. Install it first."
+    echo -e "${RED}fzf is required. Install it first.${RESET}"
     exit 1
   fi
 

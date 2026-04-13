@@ -104,7 +104,7 @@ export GIT_IDENTITY_CONFIG="$HOME/my-identities.json"
 | `label` | yes | Display name for the identity |
 | `name` | yes | Git `user.name` |
 | `email` | yes | Git `user.email` |
-| `signingKey` | no | GPG/SSH signing key — sets `user.signingkey` and enables `commit.gpgsign` |
+| `signingKey` | no | GPG/SSH signing key — sets `user.signingkey`, enables `commit.gpgsign`, and auto-detects `gpg.format` (`ssh` for keys starting with `ssh-` or `key::`, `openpgp` otherwise) |
 | `remotes` | no | Regex patterns to match remote URLs — used for auto-suggestion |
 
 ### Auto-detection
