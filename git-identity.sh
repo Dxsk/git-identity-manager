@@ -70,6 +70,7 @@ cmd_unset() {
   git config --local --unset user.email 2>/dev/null || true
   git config --local --unset user.signingkey 2>/dev/null || true
   git config --local --unset commit.gpgsign 2>/dev/null || true
+  git config --local --unset gpg.format 2>/dev/null || true
   echo "Local identity removed. Falling back to global config."
 }
 
@@ -132,9 +133,15 @@ apply_identity() {
   if [[ -n "$signing_key" ]]; then
     git config --local user.signingkey "$signing_key"
     git config --local commit.gpgsign true
+    if [[ "$signing_key" == ssh-* || "$signing_key" == key::* ]]; then
+      git config --local gpg.format ssh
+    else
+      git config --local gpg.format openpgp
+    fi
   else
     git config --local --unset user.signingkey 2>/dev/null || true
     git config --local --unset commit.gpgsign 2>/dev/null || true
+    git config --local --unset gpg.format 2>/dev/null || true
   fi
 
   echo "Identity set for this repo:"
