@@ -3,8 +3,7 @@
     ".": {
       "release-type": "simple",
       "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true,
-      "extra-files": ["PKGBUILD"]
+      "bump-patch-for-minor-pre-major": true
     }
   }
 }
