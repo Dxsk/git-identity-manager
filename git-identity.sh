@@ -15,6 +15,9 @@ else
   BOLD='' GREEN='' YELLOW='' RED='' DIM='' RESET=''
 fi
 
+# jq fragment: base "label | name <email>" line for one identity
+ENTRY_FORMAT='"\(.label) | \(.name) <\(.email)>"'
+
 usage() {
   cat <<EOF
 Usage: git-identity [OPTION]
@@ -31,6 +34,7 @@ EOF
 }
 
 require_config() {
+  require_jq
   if [[ ! -f "$CONFIG_FILE" ]]; then
     echo -e "${RED}Config not found: $CONFIG_FILE${RESET}"
     echo "Create it or set GIT_IDENTITY_CONFIG to point to your identities.json"
@@ -56,10 +60,15 @@ require_jq() {
   fi
 }
 
+unset_signing() {
+  git config --local --unset user.signingkey 2>/dev/null || true
+  git config --local --unset commit.gpgsign 2>/dev/null || true
+  git config --local --unset gpg.format 2>/dev/null || true
+}
+
 cmd_list() {
   require_config
-  require_jq
-  jq -r '.identities[] | "\(.label) | \(.name) <\(.email)>" + (if .signingKey then " [signing: \(.signingKey[0:16])...]" else "" end) + (if .remotes then " (remotes: \(.remotes | join(", ")))" else "" end)' "$CONFIG_FILE"
+  jq -r ".identities[] | $ENTRY_FORMAT"' + (if .signingKey then " [signing: \(.signingKey[0:16])...]" else "" end) + (if .remotes then " (remotes: \(.remotes | join(", ")))" else "" end)' "$CONFIG_FILE"
 }
 
 cmd_current() {
@@ -124,13 +133,12 @@ HOOK
 apply_identity() {
   local label="$1"
 
-  require_jq
   require_config
 
   local name email signing_key
-  name=$(jq -r --arg l "$label" '.identities[] | select(.label == $l) | .name' "$CONFIG_FILE")
-  email=$(jq -r --arg l "$label" '.identities[] | select(.label == $l) | .email' "$CONFIG_FILE")
-  signing_key=$(jq -r --arg l "$label" '.identities[] | select(.label == $l) | .signingKey // empty' "$CONFIG_FILE")
+  IFS=$'\t' read -r name email signing_key < <(
+    jq -r --arg l "$label" '.identities[] | select(.label == $l) | [.name, .email, (.signingKey // "")] | @tsv' "$CONFIG_FILE"
+  ) || true
 
   # Show previous identity
   local current_name current_email
@@ -155,9 +163,7 @@ apply_identity() {
       git config --local gpg.format openpgp
     fi
   else
-    git config --local --unset user.signingkey 2>/dev/null || true
-    git config --local --unset commit.gpgsign 2>/dev/null || true
-    git config --local --unset gpg.format 2>/dev/null || true
+    unset_signing
   fi
 
   echo -e "${GREEN}Identity set for this repo:${RESET}"
@@ -168,7 +174,6 @@ apply_identity() {
 
 cmd_select() {
   require_config
-  require_jq
   require_repo
 
   if ! command -v fzf &>/dev/null; then
@@ -192,7 +197,7 @@ cmd_select() {
 
   # Build selection list
   local entries
-  entries=$(jq -r '.identities[] | "\(.label) | \(.name) <\(.email)>"' "$CONFIG_FILE")
+  entries=$(jq -r ".identities[] | $ENTRY_FORMAT" "$CONFIG_FILE")
 
   local selected
   selected=$(echo "$entries" | fzf --prompt="$prompt" --height=~50% --reverse --query="${suggestion}") || exit 0
