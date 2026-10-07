@@ -1,10 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 (2026-10-07)
 
 ### Added
 
 - `edit` command (shortcut `e`) that opens the config in your default editor, or the one configured for Git, then checks the result and offers to reopen it or restore the previous version when it is invalid
+- Test coverage is measured in the Forgejo CI (`make coverage` locally)
+
+### Changed
+
+- Building a release again for the same tag replaces the existing release instead of failing
+- The repository uses LF line endings on every platform
 
 ## 1.1.0 (2026-10-07)
 
