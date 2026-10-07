@@ -3,17 +3,129 @@ name: Release
 on:
   push:
     branches: [main]
+    tags: ["v*"]
 
 permissions:
   contents: write
   pull-requests: write
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   release-please:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # Runs after release-please cuts a release, or on a pushed v* tag.
+  build:
+    needs: release-please
+    if: >-
+      always() &&
+      (needs.release-please.outputs.created == 'true' || github.ref_type == 'tag')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl,  os: ubuntu-latest }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm }
+          - { target: x86_64-apple-darwin,        os: macos-latest }
+          - { target: aarch64-apple-darwin,       os: macos-latest }
+          - { target: x86_64-pc-windows-msvc,     os: windows-latest, arch: x86_64 }
+          - { target: aarch64-pc-windows-msvc,    os: windows-latest, arch: aarch64 }
+    runs-on: ${{ matrix.os }}
+    env:
+      TAG: ${{ needs.release-please.outputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install musl tools
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          cp LICENSE README.md target/${{ matrix.target }}/release/git-identity dist/
+          tar -czf git-identity-${{ matrix.target }}.tar.gz -C dist LICENSE README.md git-identity
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p dist
+          cp LICENSE README.md target/${{ matrix.target }}/release/git-identity.exe dist/
+          (cd dist && 7z a ../git-identity-${{ matrix.target }}.zip LICENSE README.md git-identity.exe)
+
+      - name: Build installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
+            $env:Path += ";${env:ProgramFiles(x86)}\NSIS"
+          }
+          $version = "$env:TAG".TrimStart('v')
+          makensis /V2 "/DVERSION=$version" "/DARCH=${{ matrix.arch }}" `
+            "/DBINARY=..\target\${{ matrix.target }}\release\git-identity.exe" `
+            "/DOUTFILE=..\git-identity-${{ matrix.arch }}-setup.exe" `
+            installer\git-identity.nsi
+
+      - name: Upload
+        run: |
+          shopt -s nullglob
+          # Matrix jobs race to create the release on tag pushes; losing that race is fine.
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --generate-notes --verify-tag || true
+          gh release upload "$TAG" --clobber git-identity-*.{tar.gz,zip} git-identity-*-setup.exe
+
+  checksums:
+    needs: [release-please, build]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ needs.release-please.outputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Hash archives and binaries
+        run: |
+          mkdir assets && cd assets
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'git-identity-*'
+          sha256sum git-identity-* > SHA256SUMS
+
+          # Hash the binary inside each archive, listed as <target>/<binary>.
+          for archive in git-identity-*.tar.gz git-identity-*.zip; do
+            target=${archive#git-identity-}
+            target=${target%.tar.gz}
+            target=${target%.zip}
+            mkdir -p "bin/$target"
+            case "$archive" in
+              *.tar.gz) tar -xzf "$archive" -C "bin/$target" git-identity ;;
+              *.zip)    unzip -q "$archive" git-identity.exe -d "bin/$target" ;;
+            esac
+          done
+          (cd bin && sha256sum */git-identity*) > SHA256SUMS-binaries
+
+          cat SHA256SUMS SHA256SUMS-binaries
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber SHA256SUMS SHA256SUMS-binaries

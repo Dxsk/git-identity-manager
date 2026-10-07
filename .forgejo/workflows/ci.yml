@@ -1,0 +1,38 @@
+# Forgejo Actions CI. GitHub (fed by the push mirror) runs .github/workflows/
+# instead, which also covers Windows/macOS and publishes releases.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    # Adjust to your runner's label.
+    runs-on: docker
+    # Node (current LTS) is needed by the JS actions; Rust is installed below.
+    container:
+      image: node:lts-trixie
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust
+        run: |
+          curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --component rustfmt,clippy
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ hashFiles('Cargo.lock') }}
+
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
