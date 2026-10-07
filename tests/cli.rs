@@ -51,9 +51,18 @@ impl Sandbox {
     }
 
     fn run(&self, args: &[&str]) -> Output {
+        self.run_with_editor(args, "true")
+    }
+
+    /// `editor` is a shell command Git runs with the file path appended.
+    fn run_with_editor(&self, args: &[&str], editor: &str) -> Output {
         let mut cmd = Command::new(env!("CARGO_BIN_EXE_git-identity"));
         self.isolate(&mut cmd);
-        cmd.args(args).output().unwrap()
+        cmd.env("GIT_EDITOR", editor).args(args).output().unwrap()
+    }
+
+    fn config(&self) -> PathBuf {
+        self.dir.path().join("identities.json")
     }
 }
 
@@ -172,6 +181,48 @@ fn add_creates_the_config_file() {
     let raw = fs::read_to_string(sb.dir.path().join("identities.json")).unwrap();
     assert!(raw.contains("\"label\": \"Solo\""));
     assert!(!raw.contains("signingKey"));
+}
+
+#[test]
+fn edit_saves_valid_changes() {
+    let sb = Sandbox::new();
+    let out = sb.run_with_editor(&["edit"], "sed -i s/Work/Job/");
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(stdout(&out).contains("Config saved: 2 identities"));
+    assert!(stdout(&sb.run(&["ls"])).contains("Job | Me At Work"));
+
+    let out = sb.run_with_editor(&["e"], "true");
+    assert!(stdout(&out).contains("No changes."));
+}
+
+#[test]
+fn edit_restores_the_config_when_the_result_is_invalid() {
+    let sb = Sandbox::new();
+    let out = sb.run_with_editor(&["edit"], "echo broken >");
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("not valid"));
+
+    assert_eq!(fs::read_to_string(sb.config()).unwrap(), CONFIG);
+    let rejected = sb.dir.path().join("identities.json.rejected");
+    assert_eq!(fs::read_to_string(rejected).unwrap().trim(), "broken");
+}
+
+#[test]
+fn edit_creates_a_missing_config() {
+    let sb = Sandbox::new();
+    fs::remove_file(sb.config()).unwrap();
+    let out = sb.run(&["edit"]);
+    assert!(out.status.success());
+    assert!(stdout(&out).contains("Config created:"));
+    assert!(
+        fs::read_to_string(sb.config())
+            .unwrap()
+            .contains("\"identities\"")
+    );
 }
 
 #[test]

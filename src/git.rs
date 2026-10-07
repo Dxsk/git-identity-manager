@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 fn run(args: &[&str]) -> Option<String> {
@@ -41,6 +41,23 @@ pub fn unset(key: &str) {
 
 pub fn origin_url() -> Option<String> {
     run(&["remote", "get-url", "origin"])
+}
+
+/// Opens `file` in Git's editor (GIT_EDITOR, core.editor, VISUAL, EDITOR).
+/// `git config --edit` only launches the editor, so it works for any file and
+/// handles editor commands with arguments or spaces on every platform.
+pub fn edit(file: &Path) -> Result<(), String> {
+    let status = Command::new("git")
+        .args(["config", "--file"])
+        .arg(file)
+        .arg("--edit")
+        .status()
+        .map_err(|e| format!("Could not run git: {e}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err("The editor exited with an error.".into())
+    }
 }
 
 pub fn hooks_dir() -> Option<PathBuf> {

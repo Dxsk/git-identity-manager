@@ -2,11 +2,12 @@ mod config;
 mod git;
 
 use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use console::{Term, style};
 use dialoguer::theme::ColorfulTheme;
-use dialoguer::{FuzzySelect, Input};
+use dialoguer::{Confirm, FuzzySelect, Input};
 
 use config::{Config, Identity};
 
@@ -40,7 +41,8 @@ Commands:                                                        Shortcuts
                       -k, --signing-key <key>
                       -r, --remote <regex>  (repeatable)
   remove [<label>]  Remove an identity from the config           rm
-  hook              Install a post-checkout reminder hook
+  edit              Open the config in Git's editor               e
+  hook            Install a post-checkout reminder hook
   init              Create a config file from the example template
   path              Print the config file path
   help              Show this help message                       h
@@ -69,6 +71,7 @@ fn main() -> ExitCode {
         ["remove" | "rm", label] => cmd_remove(Some(label)),
         ["unset" | "--unset"] => cmd_unset(),
         ["hook" | "--hook"] => cmd_hook(),
+        ["edit" | "e"] => cmd_edit(),
         ["init"] => cmd_init(),
         ["path"] => {
             println!("{}", config::path().display());
@@ -205,13 +208,74 @@ fn cmd_init() -> Result<(), String> {
     if path.exists() {
         return Err(format!("Config already exists: {}", path.display()));
     }
+    write_example(&path)?;
+    println!("Edit it with `git identity edit` to add your identities.");
+    Ok(())
+}
+
+fn write_example(path: &Path) -> Result<(), String> {
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
-    fs::write(&path, config::EXAMPLE).map_err(|e| format!("{}: {e}", path.display()))?;
+    fs::write(path, config::EXAMPLE).map_err(|e| format!("{}: {e}", path.display()))?;
     println!("{} {}", style("Config created:").green(), path.display());
-    println!("Edit it to add your identities.");
     Ok(())
+}
+
+/// Opens the config in Git's editor and validates it afterwards. An invalid
+/// file can be reopened; if the user gives up, the previous version is put
+/// back and the rejected edit is kept next to it so nothing is lost.
+fn cmd_edit() -> Result<(), String> {
+    let path = config::path();
+    if !path.exists() {
+        write_example(&path)?;
+    }
+    let read = |p: &Path| fs::read_to_string(p).map_err(|e| format!("{}: {e}", p.display()));
+    let original = read(&path)?;
+
+    loop {
+        git::edit(&path)?;
+        let edited = read(&path)?;
+        let err = match config::parse(&edited) {
+            Ok(cfg) => {
+                if edited == original {
+                    println!("No changes.");
+                } else {
+                    let n = cfg.identities.len();
+                    let plural = if n == 1 { "identity" } else { "identities" };
+                    println!(
+                        "{} {n} {plural} in {}",
+                        style("Config saved:").green(),
+                        path.display()
+                    );
+                }
+                return Ok(());
+            }
+            Err(err) => err,
+        };
+
+        eprintln!(
+            "{} {err}",
+            style("The config is not valid:").red().for_stderr()
+        );
+        let retry = interactive()
+            && Confirm::with_theme(&ColorfulTheme::default())
+                .with_prompt("Open the editor again?")
+                .default(true)
+                .interact()
+                .map_err(|e| e.to_string())?;
+        if !retry {
+            let mut rejected = path.clone().into_os_string();
+            rejected.push(".rejected");
+            let rejected = PathBuf::from(rejected);
+            fs::write(&rejected, &edited).map_err(|e| format!("{}: {e}", rejected.display()))?;
+            fs::write(&path, &original).map_err(|e| format!("{}: {e}", path.display()))?;
+            return Err(format!(
+                "Changes discarded, the previous config is back.\nYour edit was saved to {}",
+                rejected.display()
+            ));
+        }
+    }
 }
 
 fn cmd_use(label: &str) -> Result<(), String> {

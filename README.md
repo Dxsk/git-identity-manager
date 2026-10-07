@@ -133,7 +133,7 @@ Or do it in one line, for scripts and dotfiles:
 git identity add Work --name "Jane Doe" --email jane@company.com --remote 'github\.com[:/]my-company/'
 ```
 
-From then on, run `git identity` inside any repository to choose who you are there. If you prefer editing the file by hand, `git identity init` writes an example config and `git identity path` tells you where it is.
+From then on, run `git identity` inside any repository to choose who you are there. If you prefer editing the file by hand, `git identity edit` opens it in your editor.
 
 ## Usage
 
@@ -149,6 +149,7 @@ The binary is called `git-identity`, so Git picks it up as a subcommand. `git id
 | `git identity unset` | | Removes it, so the global config applies again |
 | `git identity add [<label>]` | `new`, `append` | Adds an identity (see below) |
 | `git identity remove [<label>]` | `rm` | Removes an identity, or lets you pick one |
+| `git identity edit` | `e` | Opens the config file in your editor |
 | `git identity hook` | | Installs a reminder hook (see below) |
 | `git identity init` | | Creates the config file from a template |
 | `git identity path` | | Prints the config file location |
@@ -210,6 +211,23 @@ Run `add` with no options and it walks you through every field. If you pass some
 | `email` | ✓ | Value for `user.email` |
 | `signingKey` | | GPG or SSH key used to sign commits. Setting it also turns on `commit.gpgsign` and picks `gpg.format` for you: `ssh` when the key starts with `ssh-` or `key::`, `openpgp` otherwise. |
 | `remotes` | | Regular expressions checked against the `origin` URL. The first identity that matches is suggested in the picker and used by `auto`. |
+
+</details>
+
+<details>
+<summary><b>Editing the file</b></summary>
+
+<br>
+
+`git identity edit` opens the config in the same editor Git uses for commit messages, so it follows `GIT_EDITOR`, `core.editor`, `VISUAL` and `EDITOR`, in that order. With none of them set, Git falls back to `vim`. To use VS Code instead, for example:
+
+```sh
+git config --global core.editor "code --wait"
+```
+
+When you close the editor, the file is checked. If it is not valid you can reopen it to fix the mistake. If you give up, the previous config is restored and your edit is kept in `identities.json.rejected`, so nothing is lost and the tool keeps working.
+
+If the file does not exist yet, it is created from the example template first.
 
 </details>
 

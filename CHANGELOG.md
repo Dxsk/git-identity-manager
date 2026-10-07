@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `edit` command (shortcut `e`) that opens the config in Git's editor, checks the result and offers to reopen it or restore the previous version when it is invalid
+
 ## 1.1.0 (2026-10-07)
 
 Rewritten in Rust. The tool is now a single binary that only needs `git`, and runs on Linux, macOS and Windows.
