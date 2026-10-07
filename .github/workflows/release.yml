@@ -86,7 +86,7 @@ jobs:
           makensis /V2 "/DVERSION=$version" "/DARCH=${{ matrix.arch }}" `
             "/DBINARY=..\target\${{ matrix.target }}\release\git-identity.exe" `
             "/DOUTFILE=..\git-identity-${{ matrix.arch }}-setup.exe" `
-            installer\git-identity.nsi
+            installers\git-identity.nsi
 
       - name: Upload
         run: |

@@ -77,7 +77,7 @@ jobs:
           makensis -V2 "-DVERSION=$version" -DARCH=x86_64 \
             "-DBINARY=$PWD/target/x86_64-pc-windows-gnu/release/git-identity.exe" \
             "-DOUTFILE=$PWD/$out/git-identity-x86_64-setup.exe" \
-            installer/git-identity.nsi
+            installers/git-identity.nsi
 
           # SHA256SUMS covers the downloads, SHA256SUMS-binaries the binary
           # inside each archive, listed as <target>/<binary>.

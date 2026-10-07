@@ -1,7 +1,7 @@
 ; Per-user Windows installer for git-identity (no admin rights required).
 ;
 ;   makensis /DVERSION=1.1.0 /DARCH=x86_64 /DBINARY=..\target\release\git-identity.exe ^
-;            /DOUTFILE=..\dist\git-identity-1.1.0-x86_64-setup.exe installer\git-identity.nsi
+;            /DOUTFILE=..\dist\git-identity-1.1.0-x86_64-setup.exe installers\git-identity.nsi
 
 !ifndef VERSION
   !error "Pass /DVERSION=x.y.z"

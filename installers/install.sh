@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install the latest prebuilt git-identity binary (Linux / macOS).
 #
-#   curl -fsSL https://raw.githubusercontent.com/Dxsk/git-identity-manager/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/Dxsk/git-identity-manager/main/installers/install.sh | sh
 #
 # Environment:
 #   PREFIX   install prefix (default: ~/.local, binary goes to $PREFIX/bin)

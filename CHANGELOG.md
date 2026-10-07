@@ -10,7 +10,7 @@ Rewritten in Rust. The tool is now a single binary that only needs `git`, and ru
 - `use <label>`, `auto`, `init`, `path` and `version` commands
 - Shortcuts: `ls`, `sw`/`switch`, `cur`/`whoami`, `new`/`append`, `rm`, `h`
 - Windows support, with a per-user installer that adds itself to `PATH`
-- `install.sh` for Linux and macOS, which verifies the download checksum
+- `installers/install.sh` for Linux and macOS, which verifies the download checksum
 - `SHA256SUMS` and `SHA256SUMS-binaries` attached to every release
 - Releases built on Forgejo and on the GitHub mirror
 

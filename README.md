@@ -60,13 +60,13 @@ If you would rather not install anything, grab the portable `.zip` and put `git-
 <br>
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Dxsk/git-identity-manager/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Dxsk/git-identity-manager/main/installers/install.sh | sh
 ```
 
 The script downloads the archive that matches your system, checks it against the release's `SHA256SUMS`, and puts the binary in `~/.local/bin`. You can change that with `PREFIX`, and pin a release with `VERSION`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Dxsk/git-identity-manager/main/install.sh | PREFIX=/usr/local VERSION=v1.1.0 sh
+curl -fsSL https://raw.githubusercontent.com/Dxsk/git-identity-manager/main/installers/install.sh | PREFIX=/usr/local VERSION=v1.1.0 sh
 ```
 
 </details>
@@ -275,7 +275,7 @@ To build the Windows installer yourself, install [NSIS](https://nsis.sourceforge
 
 ```powershell
 cargo build --release
-makensis /DVERSION=1.1.0 installer\git-identity.nsi
+makensis /DVERSION=1.1.0 installers\git-identity.nsi
 ```
 
 The setup file ends up in `dist\`.
