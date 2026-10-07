@@ -85,7 +85,10 @@ jobs:
           (cd "$bins" && sha256sum */git-identity*) > "$out/SHA256SUMS-binaries"
           cat "$out/SHA256SUMS" "$out/SHA256SUMS-binaries"
 
+      # override: a release that already exists for this tag (a re-run, or a
+      # tag pushed again after a fix) is deleted and published again.
       - uses: actions/forgejo-release@v2.13.4
         with:
           direction: upload
           release-dir: dist/release
+          override: true
