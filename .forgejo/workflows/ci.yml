@@ -21,8 +21,14 @@ jobs:
 
       - name: Install Rust
         run: |
-          curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --component rustfmt,clippy
+          curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal \
+            --component rustfmt,clippy,llvm-tools-preview
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Install cargo-llvm-cov
+        run: |
+          curl -fsSL https://github.com/taiki-e/cargo-llvm-cov/releases/latest/download/cargo-llvm-cov-x86_64-unknown-linux-musl.tar.gz \
+            | tar -xzf - -C "$HOME/.cargo/bin"
 
       - uses: actions/cache@v6
         with:
@@ -34,4 +40,8 @@ jobs:
 
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked -- -D warnings
-      - run: cargo test --locked
+
+      # Runs the whole test suite and prints line coverage per file. The
+      # interactive prompts need a real terminal, so 100% is not the goal.
+      - name: Tests and coverage
+        run: cargo llvm-cov --locked --summary-only

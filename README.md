@@ -7,6 +7,7 @@
 [![Forgejo CI](https://forge.infrasouveraine.fr/dxsk/git-identity-manager/badges/workflows/ci.yml/badge.svg?label=Forgejo%20CI)](https://forge.infrasouveraine.fr/dxsk/git-identity-manager/actions?workflow=ci.yml)
 [![GitHub CI](https://img.shields.io/github/actions/workflow/status/Dxsk/git-identity-manager/ci.yml?branch=main&label=GitHub%20CI&logo=github)](https://github.com/Dxsk/git-identity-manager/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Dxsk/git-identity-manager?logo=git&logoColor=white)](https://github.com/Dxsk/git-identity-manager/releases/latest)
+[![Coverage](https://img.shields.io/badge/coverage-74%25-yellowgreen)](#development)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-informational)](#installation)
 [![License](https://img.shields.io/github/license/Dxsk/git-identity-manager)](LICENSE)
 
@@ -284,12 +285,15 @@ The hook is a plain POSIX `sh` script. Git for Windows runs these out of the box
 <br>
 
 ```sh
-make build  # optimized binary in target/release/
-make test   # unit and integration tests
-make lint   # rustfmt and clippy
+make build     # optimized binary in target/release/
+make test      # unit and integration tests
+make coverage  # tests plus line coverage (needs cargo-llvm-cov)
+make lint      # rustfmt and clippy
 ```
 
 The integration tests run the real binary against throwaway repositories, with your global Git config kept out of the way.
+
+Line coverage is around **74%**. The Forgejo CI measures it on every push and prints the per-file figures in the "Tests and coverage" step. What is left out is mostly the interactive part (the picker, the `add` wizard, opening the system editor), which needs a real terminal or desktop and is checked by hand. For a small CLI like this one, chasing 100% is not worth it.
 
 To build the Windows installer yourself, install [NSIS](https://nsis.sourceforge.io) and run:
 

@@ -7,6 +7,10 @@ build:
 test:
 	cargo test --locked
 
+# Needs cargo-llvm-cov: cargo install cargo-llvm-cov
+coverage:
+	cargo llvm-cov --locked --summary-only
+
 lint:
 	cargo fmt --check
 	cargo clippy --all-targets --locked -- -D warnings
@@ -34,4 +38,4 @@ release:
 	git tag -a "v$(V)" -m "v$(V)"
 	@echo "Now run: git push --follow-tags"
 
-.PHONY: build test lint install uninstall clean release
+.PHONY: build test coverage lint install uninstall clean release
