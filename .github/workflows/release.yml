@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # all tags, to find the highest version below
 
       - name: Check the tag matches Cargo.toml
         run: |
@@ -35,7 +37,14 @@ jobs:
             echo "Release $TAG already exists, replacing it"
             gh release delete "$TAG" --yes
           fi
-          gh release create "$TAG" --generate-notes --verify-tag
+          # Only the highest version is marked "latest", which is what
+          # releases/latest (and install.sh) resolve to. Without this, an older
+          # tag arriving at the same time, or rebuilt later, would take over.
+          highest=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          latest=false
+          [ "$highest" = "$TAG" ] && latest=true
+          echo "Highest tag is $highest, latest=$latest"
+          gh release create "$TAG" --generate-notes --verify-tag --latest="$latest"
 
   build:
     needs: prepare
