@@ -186,7 +186,8 @@ fn add_creates_the_config_file() {
 #[test]
 fn edit_saves_valid_changes() {
     let sb = Sandbox::new();
-    let out = sb.run_with_editor(&["edit"], "sed -i s/Work/Job/");
+    // `-i.bak` rather than `-i`: BSD sed on macOS needs a backup suffix.
+    let out = sb.run_with_editor(&["edit"], "sed -i.bak s/Work/Job/");
     assert!(
         out.status.success(),
         "{}",
