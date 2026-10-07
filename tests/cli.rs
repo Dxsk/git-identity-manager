@@ -193,6 +193,7 @@ fn edit_saves_valid_changes() {
         String::from_utf8_lossy(&out.stderr)
     );
     assert!(stdout(&out).contains("Config saved: 2 identities"));
+    assert!(stdout(&out).contains(&format!("Editing {}", sb.config().display())));
     assert!(stdout(&sb.run(&["ls"])).contains("Job | Me At Work"));
 
     let out = sb.run_with_editor(&["e"], "true");

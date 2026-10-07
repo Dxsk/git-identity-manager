@@ -233,6 +233,7 @@ fn cmd_edit() -> Result<(), String> {
     }
     let read = |p: &Path| fs::read_to_string(p).map_err(|e| format!("{}: {e}", p.display()));
     let original = read(&path)?;
+    println!("{} {}", style("Editing").bold(), path.display());
 
     loop {
         if let editor::Opened::InBackground = editor::open(&path)? {
