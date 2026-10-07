@@ -1,2 +1,3 @@
-* text=auto
-*.sh text eol=lf
+# Every text file uses LF, on Windows too. This overrides core.autocrlf,
+# which Git for Windows turns on by default.
+* text=auto eol=lf
