@@ -1,135 +1,299 @@
-# git-identity-manager
+<div align="center">
 
-A simple CLI tool to switch between Git identities (`user.name` / `user.email`) per repository using [fzf](https://github.com/junegunn/fzf).
+# git-identity
 
-## Why?
+**Pick the right Git identity for each repository, and stop committing with the wrong email.**
 
-If you use multiple Git accounts (personal, work, open-source), it's easy to commit with the wrong identity. This tool lets you pick the right one interactively and applies it to the current repo's local config.
+[![CI](https://img.shields.io/github/actions/workflow/status/Dxsk/git-identity-manager/ci.yml?branch=main&label=CI&logo=github)](https://github.com/Dxsk/git-identity-manager/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Dxsk/git-identity-manager?logo=git&logoColor=white)](https://github.com/Dxsk/git-identity-manager/releases/latest)
+[![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-informational)](#installation)
+[![License](https://img.shields.io/github/license/Dxsk/git-identity-manager)](LICENSE)
+
+</div>
+
+---
+
+If you have a personal account, a work account and maybe a few open-source ones, sooner or later you push a commit signed with the wrong address. `git-identity` keeps your identities in one file and sets the right `user.name`, `user.email` and signing key on each repository, either from a quick fuzzy picker or automatically from the remote URL.
+
+It is a single small binary. The only thing it needs at runtime is `git`.
+
+```console
+$ git identity
+? Select git identity (suggested: Work) ›
+❯ Work | Jane Doe <jane@company.com>
+  Personal | Jane Doe <jane@example.com>
+
+Identity set for this repo:
+  user.name       = Jane Doe
+  user.email      = jane@company.com
+```
 
 ## Installation
 
-### Nix (flake)
+Prebuilt binaries for every release are on the [releases page](https://github.com/Dxsk/git-identity-manager/releases).
 
-Add the input to your flake:
+<details open>
+<summary><b>Windows</b></summary>
 
-```nix
-{
-  inputs.git-identity-manager.url = "github:Dxsk/git-identity-manager";
-}
+<br>
+
+Download and run `git-identity-x86_64-setup.exe` (or the `aarch64` one on ARM devices).
+
+The installer works per user, so it does not ask for admin rights. It adds the program to your `PATH` and shows up in *Apps & features* if you want to remove it later.
+
+For a silent install, pass `/S`:
+
+```powershell
+.\git-identity-x86_64-setup.exe /S
 ```
 
-Then add it to your packages (e.g. in home-manager):
+If you would rather not install anything, grab the portable `.zip` and put `git-identity.exe` somewhere on your `PATH`.
 
-```nix
-home.packages = [ inputs.git-identity-manager.packages.${system}.default ];
+</details>
+
+<details open>
+<summary><b>Linux and macOS</b></summary>
+
+<br>
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Dxsk/git-identity-manager/main/install.sh | sh
 ```
 
-Or try it directly:
+The script downloads the archive that matches your system, checks it against the release's `SHA256SUMS`, and puts the binary in `~/.local/bin`. You can change that with `PREFIX`, and pin a release with `VERSION`:
 
-```bash
-nix run github:Dxsk/git-identity-manager
+```sh
+curl -fsSL https://raw.githubusercontent.com/Dxsk/git-identity-manager/main/install.sh | PREFIX=/usr/local VERSION=v1.1.0 sh
 ```
 
-> Dependencies (`jq`, `fzf`, `git`) are bundled automatically by Nix.
+</details>
 
-### Make
+<details>
+<summary><b>From source</b></summary>
 
-```bash
-make install            # installs to ~/.local/bin/git-identity
-make install PREFIX=/usr/local  # or specify a custom prefix
+<br>
+
+You need a [Rust toolchain](https://rustup.rs).
+
+```sh
+make install                    # builds and installs to ~/.local/bin/git-identity
+make install PREFIX=/usr/local  # or anywhere else
 make uninstall
 ```
 
-### Stow
+Cargo works too:
 
-Clone the repo into your dotfiles directory and stow it:
-
-```bash
-cd ~/dotfiles
-git clone git@github.com:Dxsk/git-identity-manager.git
-stow git-identity-manager -t ~/.local/bin --ignore='README.*|LICENSE|flake.*|identities.*|\.git'
+```sh
+cargo install --git https://github.com/Dxsk/git-identity-manager
 ```
 
-### Manual
+</details>
 
-Dependencies: [jq](https://jqlang.github.io/jq/), [fzf](https://github.com/junegunn/fzf)
+<details>
+<summary><b>Verifying a download</b></summary>
 
-```bash
-# symlink to a directory in your PATH
-ln -s "$(pwd)/git-identity.sh" ~/.local/bin/git-identity
+<br>
 
-# or alias in your shell rc
-echo 'alias git-identity="/path/to/git-identity.sh"' >> ~/.zshrc
+Every release ships two checksum files:
+
+- `SHA256SUMS` lists the archives and installers you download.
+- `SHA256SUMS-binaries` lists the `git-identity` binary inside each archive, as `<target>/git-identity`. Use it to check a binary you already extracted or installed.
+
+On Linux and macOS:
+
+```sh
+sha256sum --ignore-missing -c SHA256SUMS   # macOS: shasum -a 256 --ignore-missing -c SHA256SUMS
 ```
 
-## Setup
+On Windows:
 
-Create your identities config file:
-
-```bash
-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/git-identity"
-cp identities.example.json "${XDG_CONFIG_HOME:-$HOME/.config}/git-identity/identities.json"
-$EDITOR "${XDG_CONFIG_HOME:-$HOME/.config}/git-identity/identities.json"
+```powershell
+(Get-FileHash .\git-identity-x86_64-setup.exe).Hash.ToLower()
+(Get-FileHash "$env:LOCALAPPDATA\Programs\git-identity\git-identity.exe").Hash.ToLower()
 ```
+
+Then compare the result with the matching line in the checksum file.
+
+</details>
+
+## Getting started
+
+Add your first identity. Run it inside a repository and it suggests your current name, email and a remote pattern based on `origin`:
+
+```sh
+git identity add
+```
+
+Or do it in one line, for scripts and dotfiles:
+
+```sh
+git identity add Work --name "Jane Doe" --email jane@company.com --remote 'github\.com[:/]my-company/'
+```
+
+From then on, run `git identity` inside any repository to choose who you are there. If you prefer editing the file by hand, `git identity init` writes an example config and `git identity path` tells you where it is.
 
 ## Usage
 
-```bash
-git-identity              # Interactive identity picker
-git-identity --list       # List all configured identities
-git-identity --current    # Show current local identity
-git-identity --unset      # Remove local identity (falls back to global)
-git-identity --hook       # Install a post-checkout reminder hook
-git-identity --help       # Show help
-```
+The binary is called `git-identity`, so Git picks it up as a subcommand. `git identity` and `git-identity` do the same thing.
+
+| Command | Shortcuts | What it does |
+|---|---|---|
+| `git identity` | | Opens the fuzzy picker |
+| `git identity use <label>` | `sw`, `switch` | Applies an identity by its label (case does not matter) |
+| `git identity auto` | | Applies the identity whose `remotes` match `origin` |
+| `git identity list` | `ls` | Lists your identities |
+| `git identity current` | `cur`, `whoami` | Shows the identity set on this repository |
+| `git identity unset` | | Removes it, so the global config applies again |
+| `git identity add [<label>]` | `new`, `append` | Adds an identity (see below) |
+| `git identity remove [<label>]` | `rm` | Removes an identity, or lets you pick one |
+| `git identity hook` | | Installs a reminder hook (see below) |
+| `git identity init` | | Creates the config file from a template |
+| `git identity path` | | Prints the config file location |
+| `git identity help` | `h` | Shows the built-in help |
+
+The old `--list`, `--current`, `--unset` and `--hook` flags still work, so existing aliases and scripts keep running.
+
+<details>
+<summary><b>Options for <code>add</code></b></summary>
+
+<br>
+
+| Option | |
+|---|---|
+| `-n`, `--name <name>` | Value for `user.name` |
+| `-e`, `--email <email>` | Value for `user.email` |
+| `-k`, `--signing-key <key>` | Signing key |
+| `-r`, `--remote <regex>` | Remote pattern, can be given several times |
+
+Run `add` with no options and it walks you through every field. If you pass some options, it only asks for what is still missing. Outside a terminal it never asks, and fails if the label, name or email is missing.
+
+`add` and `remove` rewrite the config file but keep any extra fields you added by hand.
+
+</details>
+
+> [!NOTE]
+> Use `git identity help` (or `git-identity --help`) to see the help. Git catches `git identity --help` before it reaches the tool and looks for a manual page instead, which does not exist.
 
 ## Configuration
 
-By default the script looks for the config at:
+<details open>
+<summary><b>Config file format</b></summary>
 
-```
-${XDG_CONFIG_HOME:-$HOME/.config}/git-identity/identities.json
-```
-
-Override it with the `GIT_IDENTITY_CONFIG` environment variable:
-
-```bash
-export GIT_IDENTITY_CONFIG="$HOME/my-identities.json"
-```
-
-### Identity fields
-
-| Field | Required | Description |
-|---|---|---|
-| `label` | yes | Display name for the identity |
-| `name` | yes | Git `user.name` |
-| `email` | yes | Git `user.email` |
-| `signingKey` | no | GPG/SSH signing key — sets `user.signingkey`, enables `commit.gpgsign`, and auto-detects `gpg.format` (`ssh` for keys starting with `ssh-` or `key::`, `openpgp` otherwise) |
-| `remotes` | no | Regex patterns to match remote URLs — used for auto-suggestion |
-
-### Auto-detection
-
-If an identity has `remotes` patterns, the tool matches them against the current repo's `origin` URL and pre-fills the fzf prompt with the suggested identity.
-
-Example config:
+<br>
 
 ```json
 {
   "identities": [
     {
       "label": "Work",
-      "name": "Your Name",
-      "email": "you@company.com",
-      "signingKey": "key_id",
-      "remotes": ["github\\.com[:/]your-org/"]
+      "name": "Jane Doe",
+      "email": "jane@company.com",
+      "signingKey": "ssh-ed25519 AAAA...",
+      "remotes": ["github\\.com[:/]my-company/"]
+    },
+    {
+      "label": "Personal",
+      "name": "Jane Doe",
+      "email": "jane@example.com"
     }
   ]
 }
 ```
 
-### Post-checkout hook
+| Field | Required | Description |
+|---|:---:|---|
+| `label` | ✓ | The name you see in the picker and pass to `use` |
+| `name` | ✓ | Value for `user.name` |
+| `email` | ✓ | Value for `user.email` |
+| `signingKey` | | GPG or SSH key used to sign commits. Setting it also turns on `commit.gpgsign` and picks `gpg.format` for you: `ssh` when the key starts with `ssh-` or `key::`, `openpgp` otherwise. |
+| `remotes` | | Regular expressions checked against the `origin` URL. The first identity that matches is suggested in the picker and used by `auto`. |
 
-Run `git-identity --hook` inside a repo to install a `post-checkout` hook that reminds you to set an identity when none is configured locally.
+</details>
+
+<details>
+<summary><b>Where the config lives</b></summary>
+
+<br>
+
+`git-identity` looks for the file in this order and uses the first one that applies:
+
+1. The path in `GIT_IDENTITY_CONFIG`
+2. `$XDG_CONFIG_HOME/git-identity/identities.json`, if `XDG_CONFIG_HOME` is set
+3. The default location for your system:
+   - Windows: `%APPDATA%\git-identity\identities.json`
+   - Linux and macOS: `~/.config/git-identity/identities.json`
+
+</details>
+
+<details>
+<summary><b>Picking the identity automatically</b></summary>
+
+<br>
+
+When an identity has `remotes` patterns and one of them matches the repository's `origin` URL, the picker opens with that identity already selected. You only have to press Enter.
+
+To skip the picker altogether, for example in a script or a Git hook, use:
+
+```sh
+git identity auto
+```
+
+It fails with a clear message when no pattern matches, so it is safe to chain.
+
+</details>
+
+<details>
+<summary><b>Reminder hook</b></summary>
+
+<br>
+
+Inside a repository, `git identity hook` adds a small `post-checkout` hook. After each checkout, it prints a reminder if no local identity is set yet.
+
+The hook is a plain POSIX `sh` script. Git for Windows runs these out of the box, so it behaves the same on every platform. If you already have a `post-checkout` hook, the reminder is appended to it instead of replacing it.
+
+</details>
+
+## Development
+
+<details>
+<summary><b>Building and testing</b></summary>
+
+<br>
+
+```sh
+make build  # optimized binary in target/release/
+make test   # unit and integration tests
+make lint   # rustfmt and clippy
+```
+
+The integration tests run the real binary against throwaway repositories, with your global Git config kept out of the way.
+
+To build the Windows installer yourself, install [NSIS](https://nsis.sourceforge.io) and run:
+
+```powershell
+cargo build --release
+makensis /DVERSION=1.1.0 installer\git-identity.nsi
+```
+
+The setup file ends up in `dist\`.
+
+</details>
+
+<details>
+<summary><b>CI and releases</b></summary>
+
+<br>
+
+The project lives on a Forgejo instance and is mirrored to GitHub. Each side has its own pipeline:
+
+| | Forgejo (`.forgejo/workflows/`) | GitHub mirror (`.github/workflows/`) |
+|---|---|---|
+| On every push | Format, lint and tests on Linux | Format and lint, tests on Linux, macOS and Windows |
+| On a `v*` tag | Linux x86_64 and aarch64, Windows x86_64 and its installer, all cross-compiled from one Linux runner | The same, plus macOS (Intel and Apple Silicon) and Windows ARM |
+
+Both releases include `SHA256SUMS` and `SHA256SUMS-binaries`.
+
+</details>
 
 ## License
 
