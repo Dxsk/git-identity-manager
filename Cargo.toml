@@ -1,0 +1,25 @@
+[package]
+name = "git-identity"
+version = "1.0.0"
+edition = "2024"
+description = "Switch between Git identities per repository"
+license = "MIT"
+repository = "https://github.com/Dxsk/git-identity-manager"
+rust-version = "1.85"
+
+[dependencies]
+console = { version = "0.16.6", default-features = false }
+dialoguer = { version = "0.12.0", default-features = false, features = ["fuzzy-select"] }
+regex-lite = "0.1.9"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

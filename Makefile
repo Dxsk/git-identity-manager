@@ -1,9 +1,23 @@
-PREFIX ?= ~/.local
+PREFIX ?= $(HOME)/.local
+BIN    := target/release/git-identity
 
-install:
-	install -Dm755 git-identity.sh $(PREFIX)/bin/git-identity
+build:
+	cargo build --release --locked
+
+test:
+	cargo test --locked
+
+lint:
+	cargo fmt --check
+	cargo clippy --all-targets --locked -- -D warnings
+
+install: build
+	install -Dm755 $(BIN) $(DESTDIR)$(PREFIX)/bin/git-identity
 
 uninstall:
-	rm -f $(PREFIX)/bin/git-identity
+	rm -f $(DESTDIR)$(PREFIX)/bin/git-identity
 
-.PHONY: install uninstall
+clean:
+	cargo clean
+
+.PHONY: build test lint install uninstall clean
