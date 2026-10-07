@@ -4,10 +4,13 @@
 
 **Pick the right Git identity for each repository, and stop committing with the wrong email.**
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Dxsk/git-identity-manager/ci.yml?branch=main&label=CI&logo=github)](https://github.com/Dxsk/git-identity-manager/actions/workflows/ci.yml)
+[![Forgejo CI](https://forge.infrasouveraine.fr/dxsk/git-identity-manager/badges/workflows/ci.yml/badge.svg?label=Forgejo%20CI)](https://forge.infrasouveraine.fr/dxsk/git-identity-manager/actions?workflow=ci.yml)
+[![GitHub CI](https://img.shields.io/github/actions/workflow/status/Dxsk/git-identity-manager/ci.yml?branch=main&label=GitHub%20CI&logo=github)](https://github.com/Dxsk/git-identity-manager/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Dxsk/git-identity-manager?logo=git&logoColor=white)](https://github.com/Dxsk/git-identity-manager/releases/latest)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-informational)](#installation)
 [![License](https://img.shields.io/github/license/Dxsk/git-identity-manager)](LICENSE)
+
+[Forgejo (main repository)](https://forge.infrasouveraine.fr/dxsk/git-identity-manager) · [GitHub mirror](https://github.com/Dxsk/git-identity-manager)
 
 </div>
 
@@ -30,7 +33,7 @@ Identity set for this repo:
 
 ## Installation
 
-Prebuilt binaries for every release are on the [releases page](https://github.com/Dxsk/git-identity-manager/releases).
+Prebuilt binaries for every release are on the [GitHub releases page](https://github.com/Dxsk/git-identity-manager/releases), which has every platform. The [Forgejo releases](https://forge.infrasouveraine.fr/dxsk/git-identity-manager/releases) carry the Linux and Windows x86_64 builds.
 
 <details open>
 <summary><b>Windows</b></summary>
@@ -284,7 +287,7 @@ The setup file ends up in `dist\`.
 
 <br>
 
-The project lives on a Forgejo instance and is mirrored to GitHub. Each side has its own pipeline:
+The project lives on [Forgejo](https://forge.infrasouveraine.fr/dxsk/git-identity-manager) and is push-mirrored to [GitHub](https://github.com/Dxsk/git-identity-manager). Each side has its own pipeline:
 
 | | Forgejo (`.forgejo/workflows/`) | GitHub mirror (`.github/workflows/`) |
 |---|---|---|
@@ -292,6 +295,31 @@ The project lives on a Forgejo instance and is mirrored to GitHub. Each side has
 | On a `v*` tag | Linux x86_64 and aarch64, Windows x86_64 and its installer, all cross-compiled from one Linux runner | The same, plus macOS (Intel and Apple Silicon) and Windows ARM |
 
 Both releases include `SHA256SUMS` and `SHA256SUMS-binaries`.
+
+</details>
+
+<details>
+<summary><b>Cutting a release</b></summary>
+
+<br>
+
+1. Describe the changes under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md).
+2. Run the release target with the new version:
+
+   ```sh
+   make release V=1.1.0
+   ```
+
+   It sets the version in `Cargo.toml` and `Cargo.lock`, turns the `Unreleased` heading into `1.1.0 (date)`, then commits and creates the `v1.1.0` tag. Nothing is pushed yet, so you can still check the result.
+3. Push to Forgejo:
+
+   ```sh
+   git push --follow-tags
+   ```
+
+The tag starts the Forgejo release, and the mirror carries it to GitHub, which starts the GitHub one. Both refuse to run if the tag does not match the version in `Cargo.toml`.
+
+Since the mirror overwrites GitHub on every sync, never commit or tag directly on GitHub.
 
 </details>
 

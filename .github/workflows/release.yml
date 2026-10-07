@@ -1,37 +1,37 @@
+# Runs on the GitHub mirror when a v* tag arrives from Forgejo.
 name: Release
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
 
 permissions:
   contents: write
-  pull-requests: write
 
 env:
   CARGO_TERM_COLOR: always
+  TAG: ${{ github.ref_name }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
-  release-please:
-    if: github.ref_type == 'branch'
+  prepare:
     runs-on: ubuntu-latest
-    outputs:
-      created: ${{ steps.release.outputs.release_created }}
-      tag: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@v5
-        id: release
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
+      - uses: actions/checkout@v7
 
-  # Runs after release-please cuts a release, or on a pushed v* tag.
+      - name: Check the tag matches Cargo.toml
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match Cargo.toml version $version"
+            exit 1
+          fi
+
+      - name: Create the release
+        run: gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --generate-notes --verify-tag
+
   build:
-    needs: release-please
-    if: >-
-      always() &&
-      (needs.release-please.outputs.created == 'true' || github.ref_type == 'tag')
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -43,16 +43,11 @@ jobs:
           - { target: x86_64-pc-windows-msvc,     os: windows-latest, arch: x86_64 }
           - { target: aarch64-pc-windows-msvc,    os: windows-latest, arch: aarch64 }
     runs-on: ${{ matrix.os }}
-    env:
-      TAG: ${{ needs.release-please.outputs.tag || github.ref_name }}
-      GH_TOKEN: ${{ github.token }}
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.TAG }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -96,17 +91,11 @@ jobs:
       - name: Upload
         run: |
           shopt -s nullglob
-          # Matrix jobs race to create the release on tag pushes; losing that race is fine.
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --generate-notes --verify-tag || true
           gh release upload "$TAG" --clobber git-identity-*.{tar.gz,zip} git-identity-*-setup.exe
 
   checksums:
-    needs: [release-please, build]
-    if: always() && needs.build.result == 'success'
+    needs: build
     runs-on: ubuntu-latest
-    env:
-      TAG: ${{ needs.release-please.outputs.tag || github.ref_name }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Hash archives and binaries
         run: |

@@ -12,12 +12,20 @@ env:
 
 jobs:
   release:
-    # Adjust to your runner's label (assumes an x86_64 host).
-    runs-on: docker
+    # Assumes an x86_64 host.
+    runs-on: ubuntu-latest
     container:
       image: node:lts-trixie
     steps:
       - uses: actions/checkout@v7
+
+      - name: Check the tag matches Cargo.toml
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match Cargo.toml version $version" >&2
+            exit 1
+          fi
 
       - name: Install toolchains
         run: |

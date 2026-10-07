@@ -12,8 +12,7 @@ env:
 
 jobs:
   check:
-    # Adjust to your runner's label.
-    runs-on: docker
+    runs-on: ubuntu-latest
     # Node (current LTS) is needed by the JS actions; Rust is installed below.
     container:
       image: node:lts-trixie
