@@ -1,0 +1,91 @@
+# Forgejo release: on a pushed v* tag, cross-compile from a single Linux runner
+# and publish a Forgejo release. macOS and Windows ARM builds are only produced
+# by the GitHub mirror (.github/workflows/release.yml), which needs native runners.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    # Assumes an x86_64 host.
+    runs-on: ubuntu-latest
+    container:
+      image: node:lts-trixie
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the tag matches Cargo.toml
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match Cargo.toml version $version" >&2
+            exit 1
+          fi
+
+      - name: Install toolchains
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            musl-tools gcc-aarch64-linux-gnu gcc-mingw-w64-x86-64 nsis jq zip
+          curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal \
+            --target x86_64-unknown-linux-musl,aarch64-unknown-linux-musl,x86_64-pc-windows-gnu
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-release-${{ hashFiles('Cargo.lock') }}
+
+      - name: Build
+        env:
+          # Rust's musl targets are self-contained; the GNU cross gcc only links.
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+        run: |
+          for target in x86_64-unknown-linux-musl aarch64-unknown-linux-musl x86_64-pc-windows-gnu; do
+            cargo build --release --locked --target "$target"
+          done
+
+      - name: Package
+        run: |
+          set -eu
+          version="${GITHUB_REF_NAME#v}"
+          out=dist/release
+          mkdir -p "$out"
+
+          bins=$(mktemp -d)
+          for target in x86_64-unknown-linux-musl aarch64-unknown-linux-musl x86_64-pc-windows-gnu; do
+            bin=git-identity
+            case "$target" in *windows*) bin=git-identity.exe ;; esac
+            stage=$(mktemp -d)
+            cp LICENSE README.md "target/$target/release/$bin" "$stage/"
+            case "$target" in
+              *windows*) (cd "$stage" && zip -q "$OLDPWD/$out/git-identity-$target.zip" LICENSE README.md "$bin") ;;
+              *)         tar -czf "$out/git-identity-$target.tar.gz" -C "$stage" LICENSE README.md "$bin" ;;
+            esac
+            mkdir -p "$bins/$target"
+            cp "$stage/$bin" "$bins/$target/"
+          done
+
+          makensis -V2 "-DVERSION=$version" -DARCH=x86_64 \
+            "-DBINARY=$PWD/target/x86_64-pc-windows-gnu/release/git-identity.exe" \
+            "-DOUTFILE=$PWD/$out/git-identity-x86_64-setup.exe" \
+            installer/git-identity.nsi
+
+          # SHA256SUMS covers the downloads, SHA256SUMS-binaries the binary
+          # inside each archive, listed as <target>/<binary>.
+          (cd "$out" && sha256sum git-identity-* > SHA256SUMS)
+          (cd "$bins" && sha256sum */git-identity*) > "$out/SHA256SUMS-binaries"
+          cat "$out/SHA256SUMS" "$out/SHA256SUMS-binaries"
+
+      - uses: actions/forgejo-release@v2.13.4
+        with:
+          direction: upload
+          release-dir: dist/release

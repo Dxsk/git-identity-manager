@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+Rewritten in Rust. The tool is now a single binary that only needs `git`, and runs on Linux, macOS and Windows.
+
+### Added
+
+- `add` and `remove` commands to manage identities without editing the file, with an interactive mode that suggests your current name, email and a remote pattern
+- `use <label>`, `auto`, `init`, `path` and `version` commands
+- Shortcuts: `ls`, `sw`/`switch`, `cur`/`whoami`, `new`/`append`, `rm`, `h`
+- Windows support, with a per-user installer that adds itself to `PATH`
+- `install.sh` for Linux and macOS, which verifies the download checksum
+- `SHA256SUMS` and `SHA256SUMS-binaries` attached to every release
+- Releases built on Forgejo and on the GitHub mirror
+
+### Changed
+
+- The interactive picker is built in, so `fzf` and `jq` are no longer needed
+- On Windows the config lives in `%APPDATA%\git-identity\identities.json`
+- The reminder hook is now plain POSIX `sh`
+- Errors go to stderr
+
+### Removed
+
+- The bash script
+- The Nix flake
+- release-please (releases are now cut by pushing a tag, see `make release`)
+
+
 ## 1.0.0 (2026-06-15)
 
 
