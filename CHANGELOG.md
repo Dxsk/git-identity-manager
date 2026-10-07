@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 (2026-10-07)
 
 Rewritten in Rust. The tool is now a single binary that only needs `git`, and runs on Linux, macOS and Windows.
 
