@@ -1,4 +1,5 @@
 mod config;
+mod editor;
 mod git;
 
 use std::fs;
@@ -41,7 +42,7 @@ Commands:                                                        Shortcuts
                       -k, --signing-key <key>
                       -r, --remote <regex>  (repeatable)
   remove [<label>]  Remove an identity from the config           rm
-  edit              Open the config in Git's editor               e
+  edit              Open the config in your editor               e
   hook            Install a post-checkout reminder hook
   init              Create a config file from the example template
   path              Print the config file path
@@ -234,7 +235,9 @@ fn cmd_edit() -> Result<(), String> {
     let original = read(&path)?;
 
     loop {
-        git::edit(&path)?;
+        if let editor::Opened::InBackground = editor::open(&path)? {
+            return Ok(());
+        }
         let edited = read(&path)?;
         let err = match config::parse(&edited) {
             Ok(cfg) => {

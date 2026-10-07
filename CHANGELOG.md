@@ -4,7 +4,7 @@
 
 ### Added
 
-- `edit` command (shortcut `e`) that opens the config in Git's editor, checks the result and offers to reopen it or restore the previous version when it is invalid
+- `edit` command (shortcut `e`) that opens the config in your default editor, or the one configured for Git, then checks the result and offers to reopen it or restore the previous version when it is invalid
 
 ## 1.1.0 (2026-10-07)
 

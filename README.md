@@ -219,13 +219,15 @@ Run `add` with no options and it walks you through every field. If you pass some
 
 <br>
 
-`git identity edit` opens the config in the same editor Git uses for commit messages, so it follows `GIT_EDITOR`, `core.editor`, `VISUAL` and `EDITOR`, in that order. With none of them set, Git falls back to `vim`. To use VS Code instead, for example:
+`git identity edit` opens the config in your system's default editor: the app tied to `.json` files on Windows, the default text editor on macOS, and whatever `xdg-open` picks on Linux. Those apps keep running in the background, so the tool waits for you to press Enter once you have saved.
+
+If you set an editor for Git (`GIT_EDITOR`, `core.editor`, `VISUAL` or `EDITOR`), that one is used instead and the tool simply waits for it to close. This is also what happens over SSH or anywhere without a desktop session. For example, to use VS Code:
 
 ```sh
 git config --global core.editor "code --wait"
 ```
 
-When you close the editor, the file is checked. If it is not valid you can reopen it to fix the mistake. If you give up, the previous config is restored and your edit is kept in `identities.json.rejected`, so nothing is lost and the tool keeps working.
+Once you are done, the file is checked. If it is not valid you can reopen it to fix the mistake. If you give up, the previous config is restored and your edit is kept in `identities.json.rejected`, so nothing is lost and the tool keeps working.
 
 If the file does not exist yet, it is created from the example template first.
 
