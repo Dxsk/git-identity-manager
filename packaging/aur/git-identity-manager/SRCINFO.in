@@ -1,0 +1,19 @@
+pkgbase = git-identity-manager
+	pkgdesc = Switch between Git identities per repository
+	pkgver = @VERSION@
+	pkgrel = 1
+	url = https://github.com/Dxsk/git-identity-manager
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = cargo
+	depends = git
+	depends = gcc-libs
+	depends = glibc
+	conflicts = git-identity-manager-bin
+	conflicts = git-identity
+	options = !lto
+	source = git-identity-manager-@VERSION@.tar.gz::https://github.com/Dxsk/git-identity-manager/archive/refs/tags/v@VERSION@.tar.gz
+	sha256sums = @SHA_SRC@
+
+pkgname = git-identity-manager

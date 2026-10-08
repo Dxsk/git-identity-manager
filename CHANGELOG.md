@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- AUR packages `git-identity-manager` (built from source) and `git-identity-manager-bin` (prebuilt static binary), rendered from a release by `packaging/aur/render.sh`
+
+### Changed
+
+- The crates.io package is named `git-identity-manager`, since `git-identity` is taken there. The command is still `git-identity`
+
 ## 1.2.0 (2026-10-07)
 
 ### Added

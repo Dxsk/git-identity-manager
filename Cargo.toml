@@ -1,11 +1,21 @@
 [package]
-name = "git-identity"
+name = "git-identity-manager"
 version = "1.2.0"
 edition = "2024"
 description = "Switch between Git identities per repository"
 license = "MIT"
 repository = "https://github.com/Dxsk/git-identity-manager"
 rust-version = "1.85"
+homepage = "https://github.com/Dxsk/git-identity-manager"
+readme = "README.md"
+keywords = ["git", "identity", "cli", "config", "email"]
+categories = ["command-line-utilities", "development-tools"]
+include = ["/src", "/tests", "/Cargo.lock", "/LICENSE", "/README.md", "/CHANGELOG.md", "/identities.example.json"]
+
+# The crate name git-identity is taken on crates.io; the command keeps it.
+[[bin]]
+name = "git-identity"
+path = "src/main.rs"
 
 [dependencies]
 console = { version = "0.16.6", default-features = false }
