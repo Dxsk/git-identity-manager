@@ -7,6 +7,8 @@
 [![Forgejo CI](https://forge.infrasouveraine.fr/dxsk/git-identity-manager/badges/workflows/ci.yml/badge.svg?label=Forgejo%20CI)](https://forge.infrasouveraine.fr/dxsk/git-identity-manager/actions?workflow=ci.yml)
 [![GitHub CI](https://img.shields.io/github/actions/workflow/status/Dxsk/git-identity-manager/ci.yml?branch=main&label=GitHub%20CI&logo=github)](https://github.com/Dxsk/git-identity-manager/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Dxsk/git-identity-manager?logo=git&logoColor=white)](https://github.com/Dxsk/git-identity-manager/releases/latest)
+[![crates.io](https://img.shields.io/crates/v/git-identity-manager?logo=rust&logoColor=white)](https://crates.io/crates/git-identity-manager)
+[![AUR](https://img.shields.io/aur/version/git-identity-manager-bin?logo=archlinux&logoColor=white&label=AUR)](https://aur.archlinux.org/packages/git-identity-manager-bin)
 [![Coverage](https://img.shields.io/badge/coverage-74%25-yellowgreen)](#development)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-informational)](#installation)
 [![License](https://img.shields.io/github/license/Dxsk/git-identity-manager)](LICENSE)
@@ -35,6 +37,21 @@ Identity set for this repo:
 ## Installation
 
 Prebuilt binaries for every release are on the [GitHub releases page](https://github.com/Dxsk/git-identity-manager/releases), which has every platform. The [Forgejo releases](https://forge.infrasouveraine.fr/dxsk/git-identity-manager/releases) carry the Linux and Windows x86_64 builds.
+
+<details open>
+<summary><b>Package managers</b></summary>
+
+<br>
+
+| Where | Package | Command |
+|---|---|---|
+| [crates.io](https://crates.io/crates/git-identity-manager) | `git-identity-manager` | `cargo install git-identity-manager` |
+| [AUR](https://aur.archlinux.org/packages/git-identity-manager-bin) (Arch, Manjaro, CachyOS...) | `git-identity-manager-bin` (prebuilt) | `yay -S git-identity-manager-bin` |
+| [AUR](https://aur.archlinux.org/packages/git-identity-manager) | `git-identity-manager` (built from source) | `yay -S git-identity-manager` |
+
+The package is called `git-identity-manager` because `git-identity` was already taken on crates.io and the AUR, but the command it installs is still `git-identity`. The AUR packages conflict with the unrelated AUR `git-identity` package, which installs a command with the same name.
+
+</details>
 
 <details open>
 <summary><b>Windows</b></summary>
@@ -85,9 +102,10 @@ make install PREFIX=/usr/local  # or anywhere else
 make uninstall
 ```
 
-Cargo works too:
+Cargo works too, from crates.io or straight from the repository:
 
 ```sh
+cargo install git-identity-manager
 cargo install --git https://github.com/Dxsk/git-identity-manager
 ```
 
@@ -334,7 +352,7 @@ Both releases include `SHA256SUMS` and `SHA256SUMS-binaries`.
    make release V=1.1.0
    ```
 
-   It sets the version in `Cargo.toml` and `Cargo.lock`, turns the `Unreleased` heading into `1.1.0 (date)`, then commits and creates the `v1.1.0` tag. Nothing is pushed yet, so you can still check the result.
+   It sets the version in `Cargo.toml` and `Cargo.lock`, turns the `Unreleased` heading into `1.1.0 (date)`, then commits and creates the signed `v1.1.0` tag (`git tag -s`, so a GPG signing key is needed). Nothing is pushed yet, so you can still check the result.
 3. Push to Forgejo:
 
    ```sh
@@ -342,6 +360,15 @@ Both releases include `SHA256SUMS` and `SHA256SUMS-binaries`.
    ```
 
 The tag starts the Forgejo release, and the mirror carries it to GitHub, which starts the GitHub one. Both refuse to run if the tag does not match the version in `Cargo.toml`.
+
+4. Once the GitHub release has all its assets, publish the packages:
+
+   ```sh
+   cargo publish                                # crates.io
+   sh packaging/aur/render.sh 1.1.0 --publish   # AUR, needs your AUR SSH key
+   ```
+
+   Without `--publish`, `render.sh` only writes the `PKGBUILD` and `.SRCINFO` files to `dist/aur/` for review.
 
 Since the mirror overwrites GitHub on every sync, never commit or tag directly on GitHub.
 
